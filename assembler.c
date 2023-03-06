@@ -14,6 +14,7 @@ int main(int args, char * arguv[]){
 
     return 0;
 }
+/*this function checks if the specified file is empty and deletes it if it is*/
 
 void removeEmptyFile(char *filename){
     FILE *fp;
@@ -23,6 +24,7 @@ void removeEmptyFile(char *filename){
     if(ftell(fp) == 0)
         remove(filename);
 }
+/*this function creates a new file name by concatenating two strings and stores the result in a third string parameter*/
 
 void createFile (char *newFileName, char *currentFile, char *endFileName){
 
