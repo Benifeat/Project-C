@@ -14,7 +14,6 @@ int main(int args, char * arguv[]){
 
     return 0;
 }
-/*this function checks if the specified file is empty and deletes it if it is*/
 
 void removeEmptyFile(char *filename){
     FILE *fp;
@@ -24,7 +23,6 @@ void removeEmptyFile(char *filename){
     if(ftell(fp) == 0)
         remove(filename);
 }
-/*this function creates a new file name by concatenating two strings and stores the result in a third string parameter*/
 
 void createFile (char *newFileName, char *currentFile, char *endFileName){
 
@@ -33,9 +31,9 @@ void createFile (char *newFileName, char *currentFile, char *endFileName){
 
 void process(char * currentFile){
 
-    essentials *asmParam;
-    symHead *headSymTbl;
-    headData *headDataTbl;
+    data_base *asmValues;
+    symbolLine *symbolLineStart;
+    headLine *headLineStart;
     char amFile[MAX_LENGTH] = {"\0"};
     char asFile[MAX_LENGTH] = {"\0"};
     char extFile[MAX_LENGTH] = {"\0"};
@@ -57,17 +55,17 @@ void process(char * currentFile){
         return;
     } /* end if */
 
-    asmParam = crtEsn();  /* initialize IC to 100 and DC to 0 */
-    headDataTbl = crtDataTbl();
-    headSymTbl = crtSymTbl();
+    asmValues = definedMemory();  /* initialize IC to 100 and DC to 0 */
+    headLineStart = createHeadLine();
+    symbolLineStart = createSymbolLine();
 
-    first(amFile, asmParam, headSymTbl, headDataTbl, &error, &entFlag, &extFlag); /* updates symbol table and a first search for errors in the file */
+    first(amFile, asmValues, symbolLineStart, headLineStart, &error, &entFlag, &extFlag); /* updates symbol table and a first search for errors in the file */
 
     if(error){
 
-        freeSymTbl(headSymTbl);
-        freeDataTbl(headDataTbl);
-        free(asmParam);
+        freeSymbolLine(symbolLineStart);
+        freeheadLineStart(headLineStart);
+        free(asmValues);
         remove(amFile);
 
         printf("The program ended, an error was found in the first pass.\n");
@@ -78,10 +76,10 @@ void process(char * currentFile){
     createFile(entFile, currentFile, "ent");
     createFile(obFile, currentFile, "ob"); /* the final file */
 
-    second(asmParam, headSymTbl, headDataTbl, amFile, extFile, entFile, obFile, &error, &extFlag, &entFlag);
+    second(asmValues, symbolLineStart, headLineStart, amFile, extFile, entFile, obFile, &error, &extFlag, &entFlag);
 
-    freeSymTbl(headSymTbl);
-    free(asmParam);
+    freeSymbolLine(symbolLineStart);
+    free(asmValues);
 
     if(error){
 

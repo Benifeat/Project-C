@@ -1,7 +1,7 @@
 
 #include "first_pass.h"
 
-int isLbl (char *line){
+int label (char *line){
 
     int i;
     int spaceFlag = 0;
@@ -29,15 +29,15 @@ int isLbl (char *line){
     return 0;
 }
 
-int validLblName(symHead *sym, char *labelName, int type, int *error , int lineCnt){
+int goodLabelName(symbolLine *symbol, char *labelName, int type, int *error , int countLines){
 
-    symTbl  *tmp = sym->head;
+    symbolList  *temp = symbol->head;
     int len = strlen(labelName);
     int i;
 
     if (labelName[0] == ' '){
 
-        lngLblName(error, lineCnt);
+        LabelToLong(error, countLines);
         return 0;
     } /* end if */
 
@@ -51,61 +51,61 @@ int validLblName(symHead *sym, char *labelName, int type, int *error , int lineC
 
         if(labelName[i] == ' ' || labelName[i] == '\t'){
 
-            extraTxt(error, lineCnt);
+            textOverBound(error, countLines);
             return 0;
         } /* end if */
 
         if(!((labelName[i] >= 'A' && labelName[i] <= 'Z') || (labelName[i] >= 'a' && labelName[i] <= 'z') || (labelName[i] >= '0' && labelName[i] <= '9'))) {
 
-            illLblName(error, lineCnt);
+            badLabelName(error, countLines);
             return 0;
         } /* end if */
     } /* end for loop */
 
-    if(invalidName(labelName)) { /* check if the name of the label is register name or instruction or directive command or if not exists label name */
+    if(badName(labelName)) { /* check if the name of the label is register name or instruction or directive command or if not exists label name */
 
-        illLblName(error, lineCnt);
+        badLabelName(error, countLines);
         return 0;
     } /* end if */
 
-    if (!tmp)
+    if (!temp)
         return 1;
 
-    while(tmp != NULL) { /* check all the names in the table of label name  */
+    while(temp != NULL) { /* check all the names in the table of label name  */
 
-        if(len == strlen(tmp->symName)) {
+        if(len == strlen(temp->symbolName)) {
 
-            if (!strcmp(labelName, tmp->symName)) { /* check if the new label name is in the table */
+            if (!strcmp(labelName, temp->symbolName)) { /* check if the new label name is in the table */
 
-                dblLblName(error, lineCnt); /* error message */
+                existingLabelName(error, countLines); /* error message */
                 return 0;
             } /* end second if */
         } /* end first if */
 
-        tmp = tmp->next;
+        temp = temp->next;
     } /* end while loop */
 
     return 1;
 }
 
-void first(char *asFileName, essentials *asmParam, symHead *sym, headData *dataTblLineHead, int *error, int *entFlag, int *extFlag) {
+void first(char *asFileName, data_base *asmValues, symbolLine *symbol, headLine *dataListStart, int *error, int *entFlag, int *extFlag) {
 
     FILE *asFile = NULL;
-    int lineCnt = 0;
+    int countLines = 0;
     char line[MAX_LINE] = {'\0'};
 
-    if(!(asFile = chkFileOpen(asFile, asFileName, "r+", error)))
+    if(!(asFile = fileNotCreated(asFile, asFileName, "r+", error)))
         return;
 
     while(fgets(line, MAX_LINE, asFile) != NULL) { /* check line after line in the as file */
 
-        char lblName[MAX_SYMBOL] = {'\0'};
-        char lblType[MAX_TYPE] = {'\0'}; /* save the type of the symbol ( code / data / external) */
-        int lblFlag = 0; /* turned on if we find label name in the line */
+        char firstLabelName[MAX_SYMBOL] = {'\0'};
+        char firstLabelType[MAX_TYPE] = {'\0'}; /* save the type of the symbol ( code / data / external) */
+        int firstLabelFlag = 0; /* turned on if we find label name in the line */
         char *ptrLine = line;
-        lineCnt++;
+        countLines++;
 
-        skipTabSpace(ptrLine); /* we want to point on the first char in the line text */
+        no_tabs(ptrLine); /* we want to point on the first char in the line text */
 
         /* if it is an empty line we skip */
         if (*ptrLine == '\n' || *ptrLine == '\0')
@@ -117,7 +117,7 @@ void first(char *asFileName, essentials *asmParam, symHead *sym, headData *dataT
 
         if(strlen(ptrLine) == MAX_LINE-1){
 
-            chkLineLen(error, lineCnt);
+            chkLineLen(error, countLines);
 
             while(strlen(ptrLine) == MAX_LINE-1) { /* we will go through the entire line before moving on to the next line in the file */
 
@@ -131,46 +131,46 @@ void first(char *asFileName, essentials *asmParam, symHead *sym, headData *dataT
             continue;
         } /* end if */
 
-        lblFlag = isLbl(ptrLine); /* if the name is valid we point on it with ptr_label and return 1 */
+        firstLabelFlag = label(ptrLine); /* if the name is valid we point on it with ptr_label and return 1 */
 
-        if(lblFlag == -1){
+        if(firstLabelFlag == -1){
 
-            spaceInLbl(error, lineCnt);
+            spacedLabel(error, countLines);
             continue;
         } /* end if */
 
-        if (lblFlag == 1) {
+        if (firstLabelFlag == 1) {
 
-            saveLblName(ptrLine, lblName);
+            saveLabel(ptrLine, firstLabelName);
 
-            if (!validLblName(sym, lblName, 1, error, lineCnt))
+            if (!goodLabelName(symbol, firstLabelName, 1, error, countLines))
                 continue;
 
-            ptrLine += strlen(lblName) + 1; /* point after the label name and the ':' */
-            skipTabSpace(ptrLine);
+            ptrLine += strlen(firstLabelName) + 1; /* point after the label name and the ':' */
+            no_tabs(ptrLine);
         } /* end if */
 
         if (*ptrLine == '.') { /* the start of the data, string, extern, entry directive command */
 
             if (checkWord(ptrLine, ".data") || checkWord(ptrLine, ".string")) {
 
-                if (lblFlag) {
+                if (firstLabelFlag) {
 
-                    strcpy(lblType, "data"); /* save the label type */
-                    addSymTbl(sym, lblName, lblType, asmParam->IC);
+                    strcpy(firstLabelType, "data"); /* save the label type */
+                    addSymbolList(symbol, firstLabelName, firstLabelType, asmValues->IC);
                 } /* end if */
 
                 if (checkWord(ptrLine, ".data")) {
 
                     ptrLine += 5; /* point after the .data directive */
-                    readDataParam(asmParam, dataTblLineHead, ptrLine, error, lineCnt);
+                    checkDataValues(asmValues, dataListStart, ptrLine, error, countLines);
                     continue;
                 } /* end if */
 
                 if (checkWord(ptrLine, ".string")) {
 
                     ptrLine += 7; /* point after the .string directive */
-                    readStrParam(asmParam, dataTblLineHead, ptrLine, error, lineCnt);
+                    checkStringValues(asmValues, dataListStart, ptrLine, error, countLines);
                     continue;
                 } /* end if */
             } /* end labels if */
@@ -180,26 +180,26 @@ void first(char *asFileName, essentials *asmParam, symHead *sym, headData *dataT
                 *entFlag = 1;
                 ptrLine += 6;
 
-                if (lblFlag) { /* if we pass a label name before .entry */
+                if (firstLabelFlag) { /* if we pass a label name before .entry */
 
-                    irrLbl(error, lineCnt);
+                    dumpLabel(error, countLines);
                     continue;
                 } /* end if */
 
-                skipTabSpace(ptrLine);
+                no_tabs(ptrLine);
 
                 if (*ptrLine == '\n' || *ptrLine == '\0') {
 
-                    noLblStatement(error, lineCnt);
+                    unDefienedLabel(error, countLines);
                     continue;
                 } /* end if */
 
                 skipChars(ptrLine); /* skip the label name */
-                skipTabSpace(ptrLine);
+                no_tabs(ptrLine);
 
                 if (*ptrLine != '\n' && *ptrLine != '\0') {
 
-                    extraTxt(error, lineCnt);
+                    textOverBound(error, countLines);
                     continue;
                 } /* end if */
 
@@ -209,37 +209,37 @@ void first(char *asFileName, essentials *asmParam, symHead *sym, headData *dataT
             if (checkWord(ptrLine, ".extern")) {
 
                 *extFlag = 1;
-                strcpy(lblType, "ext");
+                strcpy(firstLabelType, "ext");
                 ptrLine += 7;
 
-                if (lblFlag) { /* if we pass a label name before .extern */
+                if (firstLabelFlag) { /* if we pass a label name before .extern */
 
-                    irrLbl(error, lineCnt);
+                    dumpLabel(error, countLines);
                     continue;
                 } /* end if */
 
-                skipTabSpace(ptrLine);
+                no_tabs(ptrLine);
 
                 if (*ptrLine == '\n' || *ptrLine == '\0') {
 
-                    noLblStatement(error, lineCnt);
+                    unDefienedLabel(error, countLines);
                     continue;
                 } /* end if */
 
-                saveLblName(ptrLine, lblName);
+                saveLabel(ptrLine, firstLabelName);
 
-                if (validLblName(sym, lblName, 0, error, lineCnt)) {
+                if (goodLabelName(symbol, firstLabelName, 0, error, countLines)) {
 
                     skipChars(ptrLine);
-                    skipTabSpace(ptrLine);
+                    no_tabs(ptrLine);
 
                     if (*ptrLine != '\n' && *ptrLine != '\0') {
 
-                        extraTxt(error, lineCnt);
+                        textOverBound(error, countLines);
                         continue;
                     } /* end second if */
 
-                    addSymTbl(sym, lblName, lblType, 0);
+                    addSymbolList(symbol, firstLabelName, firstLabelType, 0);
                     continue;
                 } /* end first if */
                 continue;
@@ -247,42 +247,42 @@ void first(char *asFileName, essentials *asmParam, symHead *sym, headData *dataT
 
             else { /* the word from the text file start with '.' but it is not a directive command */
 
-                undefDirCmd(error, lineCnt);
+                unDefienedcommand(error, countLines);
                 continue;
             } /* end else */
         } /* end first if */
 
-        if (lblFlag) {
+        if (firstLabelFlag) {
 
-            strcpy(lblType, "code");
-            addSymTbl(sym, lblName, lblType, asmParam->IC);
-            readInst(asmParam, dataTblLineHead, ptrLine, error, lineCnt);
+            strcpy(firstLabelType, "code");
+            addSymbolList(symbol, firstLabelName, firstLabelType, asmValues->IC);
+            checkInstructions(asmValues, dataListStart, ptrLine, error, countLines);
             continue;
         } /* end if */
 
-        readInst(asmParam, dataTblLineHead, ptrLine, error, lineCnt);
+        checkInstructions(asmValues, dataListStart, ptrLine, error, countLines);
     } /* end while loop */
     fclose(asFile);
 }
 
-void saveLblName(char *line, char *lblName){
+void saveLabel(char *line, char *firstLabelName){
 
     int i;
 
     for(i = 0 ; line[i] != '\n' && line[i] != '\0' && i < MAX_SYMBOL ; i++){
 
-        lblName[i] = line[i];
+        firstLabelName[i] = line[i];
 
         if(line[i] == ':' || line[i] == ')' || line[i] == ',' ){
 
-            lblName[i] = line[i];
-            lblName[i+1] = '\0';
+            firstLabelName[i] = line[i];
+            firstLabelName[i+1] = '\0';
             return;
         } /* end if */
     } /* end for loop */
 
-    if(lblName[MAX_SYMBOL-1] != '\0')
-        lblName[0] = ' ';
+    if(firstLabelName[MAX_SYMBOL-1] != '\0')
+        firstLabelName[0] = ' ';
 
 }
 
@@ -302,36 +302,36 @@ int checkWord(char *line, char *command){
     return 0;
 }
 
-void readStrParam(essentials *asmParam, headData *headDataTbl, char *line, int *error, int lineCnt){
+void checkStringValues(data_base *asmValues, headLine *headLineStart, char *line, int *error, int countLines){
 
-    char letter = '\0' ;
+    char character = '\0' ;
     int i = 0;
-    int firstIC = asmParam->IC;
-    int lastStrInd = -1; /* save the index of the closing " */
+    int ic_start = asmValues->IC;
+    int saveLastIndex = -1; /* save the index of the closing " */
     int noString = 0; /* equal to 1 if there are more characters after " */
 
     if (*line != ' ' && *line != '\t') {
 
-        if(*line == '\n' || *line == '\0') { /* check if after the .string command we do not have param */
+        if(*line == '\n' || *line == '\0') { /* check if after the .string command we do not have value */
 
-            noParam(error, lineCnt); /* error message */
+            noParameter(error, countLines); /* error message */
             return;
         } /* end second if */
-        noSpace(error, lineCnt); /* error message */
+        noSpace(error, countLines); /* error message */
         return;
     } /* end first if */
 
-    skipTabSpace(line); /* now we point on the parameter or end of line */
+    no_tabs(line); /* now we point on the parameter or end of line */
 
     if(*line == '\n' || *line == '\0') {
 
-        noParam(error, lineCnt); /* error message */
+        noParameter(error, countLines); /* error message */
         return;
     } /* end if */
 
     if (*line != '\"'){ /* the string should start with " */
 
-        invalidStr(error, lineCnt); /* error message */
+        badString(error, countLines); /* error message */
         return;
     } /* end if */
 
@@ -341,68 +341,68 @@ void readStrParam(essentials *asmParam, headData *headDataTbl, char *line, int *
 
         if(line[i] == '\"') { /* save the index of the closing " */
 
-            lastStrInd = i;
+            saveLastIndex = i;
             noString = 0;
         } /* end if */
 
-        if(i > lastStrInd && (line[i] != ' ' && line[i] != '\t')) /* if we reached to " but there ara more characters  */
+        if(i > saveLastIndex && (line[i] != ' ' && line[i] != '\t')) /* if we reached to " but there ara more characters  */
             noString = 1;
 
         i++;
     } /* end while loop */
 
-    if(lastStrInd == -1 || noString){
+    if(saveLastIndex == -1 || noString){
 
-        invalidStr(error, lineCnt); /* error message */
+        badString(error, countLines); /* error message */
         return;
     } /* end if */
 
     i = 0;
 
-    while(i < lastStrInd) { /* We save the data line of the string */
+    while(i < saveLastIndex) { /* We save the data line of the string */
 
-        letter = *line;
-        addDataLine(headDataTbl, (int) letter, firstIC);
-        asmParam->DC += 1;
-        asmParam->IC += 1;
+        character = *line;
+        addDataLine(headLineStart, (int) character, ic_start);
+        asmValues->DC += 1;
+        asmValues->IC += 1;
         line++;
         i++;
     } /* end while loop */
 
-    addDataLine(headDataTbl, 0, firstIC); /* add '\0' to the end of the string */
-    asmParam->DC += 1;
-    asmParam->IC += 1;
+    addDataLine(headLineStart, 0, ic_start); /* add '\0' to the end of the string */
+    asmValues->DC += 1;
+    asmValues->IC += 1;
 }
 
-void readDataParam(essentials *asmParam, headData *headDataTbl, char *line, int *error, int lineCnt){
+void checkDataValues(data_base *asmValues, headLine *headLineStart, char *line, int *error, int countLines){
 
     int num = 0;
-    int firstIC = asmParam->IC;
+    int ic_start = asmValues->IC;
     char *comma = NULL; /* will point on the char after the num */
     errno = 0;
 
     if (*line != ' ' && *line != '\t') {
 
-        if(*line == '\n' || *line == '\0') { /* check if after the .data command we do not have param */
+        if(*line == '\n' || *line == '\0') { /* check if after the .data command we do not have value */
 
-            noParam(error, lineCnt); /* error message */
+            noParameter(error, countLines); /* error message */
             return;
         } /* end second if */
-        noSpace(error, lineCnt); /* error message */
+        noSpace(error, countLines); /* error message */
         return;
     } /* end first if */
 
-    skipTabSpace(line); /* now we point on the parameter or end of line */
+    no_tabs(line); /* now we point on the parameter or end of line */
 
     if(*line == '\n' || *line == '\0') {
 
-        noParam(error, lineCnt); /* error message */
+        noParameter(error, countLines); /* error message */
         return;
     } /* end if */
 
     if (*line == ',') {
 
-        invalidComma(error, lineCnt); /* error message */
+        badComma(error, countLines); /* error message */
         return;
     } /* end if */
 
@@ -412,64 +412,64 @@ void readDataParam(essentials *asmParam, headData *headDataTbl, char *line, int 
 
         if (line == comma || (errno != 0 && num == 0)) { /* the parameters are not numbers*/
 
-            invalidDataParam(error, lineCnt); /* error message */
+            invalidDataParam(error, countLines); /* error message */
             return;
         } /* end if */
 
         else {
 
-            skipTabSpace(comma);
+            no_tabs(comma);
 
             if(*comma == '\n' || *comma == '\0'){ /* we reach to end of line */
 
-                addDataLine(headDataTbl, num, firstIC);
-                asmParam->DC += 1;
-                asmParam->IC += 1;
+                addDataLine(headLineStart, num, ic_start);
+                asmValues->DC += 1;
+                asmValues->IC += 1;
                 return;
             } /* end if */
 
             if (*comma == '.') { /* if this is a real number (example: 0.1) */
 
-                invalidDataParam(error, lineCnt); /* error message */
+                invalidDataParam(error, countLines); /* error message */
                 return;
             } /* end if */
 
             else if (*comma != ',') {
 
-                missingComma(error, lineCnt); /* error message */
+                noComma(error, countLines); /* error message */
                 return;
             } /* end else if */
 
             else { /* *comma = ',' */
 
                 comma++;
-                skipTabSpace(comma); /* we want to check if the user enter 2 commas in row */
+                no_tabs(comma); /* we want to check if the user enter 2 commas in row */
 
                 if(*comma == '\n' || *comma == '\0'){
 
-                    extraTxt(error, lineCnt); /* error message */
+                    textOverBound(error, countLines); /* error message */
                     return;
                 } /* end if */
 
                 if (*comma == ',') {
 
-                    multipleCommas(error, lineCnt); /* error message */
+                    toManyCommas(error, countLines); /* error message */
                     return;
                 } /* end if */
             } /* end else */
 
             line = comma;
-            addDataLine(headDataTbl, num, firstIC);
-            asmParam->DC += 1;
-            asmParam->IC += 1;
+            addDataLine(headLineStart, num, ic_start);
+            asmValues->DC += 1;
+            asmValues->IC += 1;
         } /* end else */
     } /* end while loop */
 }
 
-void readInst(essentials *asmParam, headData *headDataTbl, char *line , int *error, int lineCnt){
+void checkInstructions(data_base *asmValues, headLine *headLineStart, char *line , int *error, int countLines){
 
     int i = 0;
-    int instructInd = -1;
+    int instructionIndex = -1;
     /* name of instructors */
     char *instructions [MAX_INSTRUCTIONS] = {"mov", "cmp", "add", "sub", "not", "clr", "lea", "inc", "dec", "jmp", "bne", "red", "prn", "jsr", "rts", "stop"};
 
@@ -477,14 +477,14 @@ void readInst(essentials *asmParam, headData *headDataTbl, char *line , int *err
 
         if(checkWord(line, instructions[i])){ /* if we find the instruction name */
 
-            instructInd = i; /* save the index of the instruction name */
+            instructionIndex = i; /* save the index of the instruction name */
             break;
         } /* end if */
     } /* end for loop */
 
-    if(instructInd == -1){ /* we do not reach to valid instruction name */
+    if(instructionIndex == -1){ /* we do not reach to valid instruction name */
 
-        undefInsCmd(error, lineCnt); /* error message */
+        undefinedInstruction(error, countLines); /* error message */
         return;
     } /* end if */
 
@@ -492,63 +492,63 @@ void readInst(essentials *asmParam, headData *headDataTbl, char *line , int *err
 
     if(*line != ' ' && *line != '\t' && *line != '\n' && *line != '\0'){
 
-        noSpace(error, lineCnt); /* error message */
+        noSpace(error, countLines); /* error message */
         return;
     } /* end if */
 
-    skipTabSpace(line);
+    no_tabs(line);
 
     if(*line == ','){ /* if there is a comma before the parameters */
 
-        invalidComma(error, lineCnt); /* error message */
+        badComma(error, countLines); /* error message */
         return;
     } /* end if */
 
-    if(13 < instructInd){ /* there should be not operands */
+    if(13 < instructionIndex){ /* there should be not operands */
 
         if(*line != '\n' && *line != '\0'){
 
-            extraTxt(error, lineCnt); /* error message */
+            textOverBound(error, countLines); /* error message */
             return;
         } /* end second if */
-        asmParam->IC++; /* we add one line in the final table */
+        asmValues->IC++; /* we add one line in the final table */
         return;
     } /* end first if */
 
-    checkInstParam(asmParam, line , error, lineCnt, instructInd);
+    checkInstructionValues(asmValues, line , error, countLines, instructionIndex);
 }
 
-void checkInstParam(essentials *asmParam, char *line , int *error, int lineCnt, int instructInd) {
+void checkInstructionValues(data_base *asmValues, char *line , int *error, int countLines, int instructionIndex) {
 
-    int jmpAddr = 0; /* equal to 1 when we reach to jump address in the line */
-    int regi = 0; /* equal to 1 when we pass register */
-    int passParam = 0; /* equal to 1 if we pass a parameter */
+    int addressFlag = 0; /* equal to 1 when we reach to jump address in the line */
+    int registerFlag = 0; /* equal to 1 when we pass register */
+    int parameterFlag = 0; /* equal to 1 if we pass a parameter */
     int i = 0;
 
     if (*line == '\n' || *line == '\0') {
 
-        noParam(error, lineCnt); /* error message */
+        noParameter(error, countLines); /* error message */
         return;
     } /* end if */
 
-    if(3 < instructInd && instructInd != 6){
+    if(3 < instructionIndex && instructionIndex != 6){
 
         if (*line == 'r') { /* check if the first parameter is a register or label name */
 
-            if (chkReg(line[1]) == -2) {
+            if (checkRegister(line[1]) == -2) {
 
-                invalidRegParam(error, lineCnt); /* error message */
+                badRegister(error, countLines); /* error message */
                 return;
             } /* end third if */
 
-            if (chkReg(line[1]) != -1) {/* the parameter is register */
+            if (checkRegister(line[1]) != -1) {/* the parameter is register */
 
-                asmParam->IC += 2;
+                asmValues->IC += 2;
                 skipChars(line);
-                skipTabSpace(line);
+                no_tabs(line);
 
                 if (*line != '\n' && *line != '\0')
-                    extraTxt(error, lineCnt);
+                    textOverBound(error, countLines);
 
                 return;
             } /* end third if */
@@ -558,25 +558,25 @@ void checkInstParam(essentials *asmParam, char *line , int *error, int lineCnt, 
 
             line++;
 
-            if (!chkNum(line)) {
+            if (!checkNumber(line)) {
 
-                invalidNumParam(error, lineCnt); /* error message */
+                badNumber(error, countLines); /* error message */
                 return;
             } /* end if */
 
-            if(instructInd == 12) { /* number can be a destination operand only in prn command */
+            if(instructionIndex == 12) { /* number can be a destination operand only in prn command */
 
-                asmParam->IC += 2;
+                asmValues->IC += 2;
                 skipChars(line);
-                skipTabSpace(line);
+                no_tabs(line);
 
                 if (*line != '\n' && *line != '\0')
-                    extraTxt(error, lineCnt);
+                    textOverBound(error, countLines);
 
                 return;
             } /* end first if */
 
-            illParam(error, lineCnt);
+            badValue(error, countLines);
             return;
         } /* end else if */
 
@@ -586,14 +586,14 @@ void checkInstParam(essentials *asmParam, char *line , int *error, int lineCnt, 
 
                 if (line[i] == '(') {
 
-                    jmpAddr = 1;
+                    addressFlag = 1;
                     i++;
                     break;
                 } /* end if */
                 i++;
             } /* end while loop */
 
-            if ((instructInd == 9 || instructInd == 10 || instructInd == 13) && jmpAddr) { /* jmp or bne or jsr */
+            if ((instructionIndex == 9 || instructionIndex == 10 || instructionIndex == 13) && addressFlag) { /* jmp or bne or jsr */
 
                 line += i; /* point on the first parameter in ( ) */
 
@@ -601,29 +601,29 @@ void checkInstParam(essentials *asmParam, char *line , int *error, int lineCnt, 
 
                     if (*line == 'r') { /* first parameter in the jump address is register or label name */
 
-                        if (chkReg(line[1]) == -2) {
+                        if (checkRegister(line[1]) == -2) {
 
-                            invalidRegParam(error, lineCnt); /* error message */
+                            badRegister(error, countLines); /* error message */
                             return;
                         } /* end if */
 
-                        if (chkReg(line[1]) != -1) {/* the parameter is register */
+                        if (checkRegister(line[1]) != -1) {/* the parameter is register */
 
-                            if (regi || passParam) {
+                            if (registerFlag || parameterFlag) {
 
-                                if (regi)
-                                    asmParam->IC += 3;
-                                if (passParam)
-                                    asmParam->IC += 4;
+                                if (registerFlag)
+                                    asmValues->IC += 3;
+                                if (parameterFlag)
+                                    asmValues->IC += 4;
 
                                 skipChars(line);
-                                skipTabSpace(line);
+                                no_tabs(line);
                                 break;
                             } /* end third if */
 
-                            regi = 1;
+                            registerFlag = 1;
                             skipChars(line);
-                            skipTabSpace(line);
+                            no_tabs(line);
                         } /* end second if */
                     } /* end first if */
 
@@ -631,128 +631,128 @@ void checkInstParam(essentials *asmParam, char *line , int *error, int lineCnt, 
 
                         line++;
 
-                        if (!chkNum(line)) {
+                        if (!checkNumber(line)) {
 
-                            invalidNumParam(error, lineCnt); /* error message */
+                            badNumber(error, countLines); /* error message */
                             return;
                         } /* end if */
 
-                        if (regi || passParam) {
+                        if (registerFlag || parameterFlag) {
 
-                            asmParam->IC += 4;
+                            asmValues->IC += 4;
                             skipChars(line);
-                            skipTabSpace(line);
+                            no_tabs(line);
                             break;
                         } /* end if */
 
-                        passParam = 1;
+                        parameterFlag = 1;
                         skipChars(line);
-                        skipTabSpace(line);
+                        no_tabs(line);
                     } /* end else if */
 
                     else { /* label name */
 
-                        if (regi || passParam) {
+                        if (registerFlag || parameterFlag) {
 
-                            asmParam->IC += 4;
+                            asmValues->IC += 4;
                             skipChars(line);
-                            skipTabSpace(line);
+                            no_tabs(line);
                             break;
                         } /* end if */
 
                         skipChars(line); /* skip label name */
-                        skipTabSpace(line);
-                        passParam = 1;
+                        no_tabs(line);
+                        parameterFlag = 1;
                     } /* end else */
 
-                    if (*line != ',' && (passParam || regi)) {
+                    if (*line != ',' && (parameterFlag || registerFlag)) {
 
-                        missingComma(error, lineCnt); /* error message */
+                        noComma(error, countLines); /* error message */
                         return;
                     } /* end if */
 
                     line++;
-                    skipTabSpace(line);
+                    no_tabs(line);
 
                     if (*line == ',') {
 
-                        multipleCommas(error, lineCnt); /* error message */
+                        toManyCommas(error, countLines); /* error message */
                         return;
                     } /* end if */
                 } /* end while loop */
 
                 if (*line != ')') {
 
-                    extraTxt(error, lineCnt);
+                    textOverBound(error, countLines);
                     return;
                 } /* end if */
 
                 line++;
-                skipTabSpace(line);
+                no_tabs(line);
 
                 if (*line != '\n' && *line != '\0')
-                    extraTxt(error, lineCnt);
+                    textOverBound(error, countLines);
 
                 return;
             } /* end first if */
 
             else {
 
-                if (jmpAddr) { /* if we have '(' in the label name */
+                if (addressFlag) { /* if we have '(' in the label name */
 
-                    illLblName(error, lineCnt); /* error message */
+                    badLabelName(error, countLines); /* error message */
                     return;
                 } /* end if */
 
-                asmParam->IC += 2;
+                asmValues->IC += 2;
                 skipChars(line);
-                skipTabSpace(line);
+                no_tabs(line);
 
                 if (*line != '\n' && *line != '\0')
-                    extraTxt(error, lineCnt);
+                    textOverBound(error, countLines);
 
                 return;
             } /* end else */
         } /* end major else */
     } /* end first if */
 
-    else { /* the instruction include 2 param */
+    else { /* the instruction include 2 value */
 
         while (1) {
 
             if (*line == 'r') {
 
-                if (chkReg(line[1]) == -2) {
+                if (checkRegister(line[1]) == -2) {
 
 
-                    invalidRegParam(error, lineCnt); /* error message */
+                    badRegister(error, countLines); /* error message */
                     return;
                 } /* end if */
 
-                if (chkReg(line[1]) != -1) {
+                if (checkRegister(line[1]) != -1) {
 
-                    if (regi || passParam) {
+                    if (registerFlag || parameterFlag) {
 
-                        if (regi)
-                            asmParam->IC += 2;
+                        if (registerFlag)
+                            asmValues->IC += 2;
 
-                        if (passParam)
-                            asmParam->IC += 3;
+                        if (parameterFlag)
+                            asmValues->IC += 3;
 
                         skipChars(line);
-                        skipTabSpace(line);
+                        no_tabs(line);
                         break;
                     } /* end third if */
 
-                    if(instructInd == 6){ /* register cant be source operand in lea command */
+                    if(instructionIndex == 6){ /* register cant be source operand in lea command */
 
-                        illParam(error, lineCnt);
+                        badValue(error, countLines);
                         return;
                     } /* end third if */
 
-                    regi = 1;
+                    registerFlag = 1;
                     skipChars(line);
-                    skipTabSpace(line);
+                    no_tabs(line);
                 } /* end second if */
             } /* end first if */
 
@@ -760,69 +760,69 @@ void checkInstParam(essentials *asmParam, char *line , int *error, int lineCnt, 
 
                 line++;
 
-                if (!chkNum(line)) {
+                if (!checkNumber(line)) {
 
-                    invalidNumParam(error, lineCnt); /* error message */
+                    badNumber(error, countLines); /* error message */
                     return;
                 } /* end if */
 
-                if (regi || passParam) {
+                if (registerFlag || parameterFlag) {
 
-                    if(instructInd != 1){ /* number can be a destination operand only in cmp command */
+                    if(instructionIndex != 1){ /* number can be a destination operand only in cmp command */
 
-                        illParam(error, lineCnt);
+                        badValue(error, countLines);
                         return;
                     } /* end second if */
 
-                    asmParam->IC += 3;
+                    asmValues->IC += 3;
                     skipChars(line);
-                    skipTabSpace(line);
+                    no_tabs(line);
                     break;
                 } /* end first if */
 
-                if(instructInd == 6){ /* number cant be source operand in lea command */
+                if(instructionIndex == 6){ /* number cant be source operand in lea command */
 
-                    illParam(error, lineCnt);
+                    badValue(error, countLines);
                     return;
                 } /* end if */
 
-                passParam = 1;
+                parameterFlag = 1;
                 skipChars(line);
-                skipTabSpace(line);
+                no_tabs(line);
             } /* end else if */
 
             else {
 
                 skipChars(line); /* label name */
-                skipTabSpace(line);
+                no_tabs(line);
 
-                if (regi || passParam) {
+                if (registerFlag || parameterFlag) {
 
-                    asmParam->IC += 3;
+                    asmValues->IC += 3;
                     break;
                 } /* end if */
 
-                passParam = 1;
+                parameterFlag = 1;
             } /* end else */
 
-            if (*line != ',' && (passParam || regi)) {
+            if (*line != ',' && (parameterFlag || registerFlag)) {
 
-                missingComma(error, lineCnt);
+                noComma(error, countLines);
                 return;
             } /* end if */
 
             line++;
-            skipTabSpace(line);
+            no_tabs(line);
 
             if (*line == ',') {
 
-                multipleCommas(error, lineCnt);
+                toManyCommas(error, countLines);
                 return;
             } /* end if */
         } /* end while loop */
 
         if (*line != '\n' && *line != '\0')
-            extraTxt(error, lineCnt);
+            textOverBound(error, countLines);
 
         return;
     } /* end major else */
@@ -836,7 +836,7 @@ void skipChars(char *line){
     } /* end while loop */
 }
 
-int chkReg(char num){
+int checkRegister(char num){
 
     if(isdigit(num) == 0) /* maybe it is a label name */
         return -1;
@@ -852,7 +852,7 @@ int chkReg(char num){
     } /* end else */
 }
 
-int chkNum(char *line){
+int checkNumber(char *line){
 
     int i = 0;
 

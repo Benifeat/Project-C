@@ -1,161 +1,161 @@
 
 #include "memory_utilities.h"
 
-mcrHead *crtMcrTbl(){
+mcrHead *createMcrList(){
 
     mcrHead *list = malloc(sizeof(mcrHead));
 
     if(list == NULL)
-        memAllocFail();
+        memoryError();
 
     list->head = NULL;
     return list;
 }
 
-essentials *crtEsn(){
+data_base *definedMemory(){
 
-    essentials *asmParam = malloc(sizeof(essentials));
+    data_base *asmValues = malloc(sizeof(data_base));
 
-    if(asmParam == NULL)
-        memAllocFail();
+    if(asmValues == NULL)
+        memoryError();
 
-    asmParam->DC = 0;
-    asmParam->IC = 100;
+    asmValues->DC = 0;
+    asmValues->IC = 100;
 
-    return asmParam;
+    return asmValues;
 }
 
-symHead *crtSymTbl(){
+symbolLine *createSymbolLine(){
 
-    symHead *list = malloc(sizeof(symHead));
+    symbolLine *list = malloc(sizeof(symbolLine));
 
     if(list == NULL)
-        memAllocFail();
+        memoryError();
 
     list->head = NULL;
     return list;
 }
 
-headData *crtDataTbl(){
+headLine *createHeadLine(){
 
-    headData *list = malloc(sizeof(headData));
+    headLine *list = malloc(sizeof(headLine));
 
     if(list == NULL)
-        memAllocFail();
+        memoryError();
 
     list->head = NULL;
     return list;
 }
 
-void addMcrTbl(mcrHead *headMcr, char name[MAX_LINE], int posFirstLine, int linesAmount){
+void addMcrList(mcrHead *headMcr, char name[MAX_LINE], int firstLineLocation, int amountOfLines){
 
-    mcrTbl *p = malloc(sizeof(mcrTbl));
-    mcrTbl *tmp = headMcr->head;
+    mcrList *pointer = malloc(sizeof(mcrList));
+    mcrList *temp = headMcr->head;
 
-    if (!p)
-        memAllocFail();
+    if (!pointer)
+        memoryError();
 
     /* save all the parameters of the macro we want to save */
-    strcpy(p->mcrName, name) ;
-    p->pos_FirstMcrLine = posFirstLine;
-    p->numOfLines = linesAmount;
-    p->next = NULL;
+    strcpy(pointer->mcrName, name) ;
+    pointer->mcrLocation = firstLineLocation;
+    pointer->numberOfLines = amountOfLines;
+    pointer->next = NULL;
 
     if(!(headMcr->head)) /* if the first macro is not install */
-        headMcr->head = p;
+        headMcr->head = pointer;
 
     else{
 
-        while (tmp->next != NULL) /* we want to insert p to the last macro in the list */
-            tmp = tmp->next;
+        while (temp->next != NULL) /* we want to insert pointer to the last macro in the list */
+            temp = temp->next;
 
-        tmp->next = p;
+        temp->next = pointer;
     } /* end else */
 }
 
-void addSymTbl(symHead *sym, char *labelName, char *type, int IC){
+void addSymbolList(symbolLine *symbol, char *labelName, char *type, int IC){
 
-    symTbl *p = malloc(sizeof(symTbl));
-    symTbl  *tmp ;
+    symbolList *pointer = malloc(sizeof(symbolList));
+    symbolList  *temp ;
 
-    if (!p)
-        memAllocFail();
+    if (!pointer)
+        memoryError();
 
     /* save all the parameters of the Label we want to save */
-    strcpy(p->symName, labelName) ;
-    strcpy(p->sign, type);
-    p->value = IC;
-    p->next = NULL;
+    strcpy(pointer->symbolName, labelName) ;
+    strcpy(pointer->mark, type);
+    pointer->value = IC;
+    pointer->next = NULL;
 
-    if(!(sym->head)) /* if the first label is not install */
-        sym->head = p;
+    if(!(symbol->head)) /* if the first label is not install */
+        symbol->head = pointer;
 
     else{
 
-        tmp = sym->head;
+        temp = symbol->head;
 
-        while (tmp->next != NULL) /* we want to insert p to the last label in the list */
-            tmp = tmp->next;
+        while (temp->next != NULL) /* we want to insert pointer to the last label in the list */
+            temp = temp->next;
 
-        tmp->next = p;
+        temp->next = pointer;
     } /* end else */
 }
 
-void addDataLine(headData *headDataTbl, int num, int IC){
+void addDataLine(headLine *headLineStart, int num, int IC){
 
-    dataTbl *p = malloc(sizeof(dataTbl));
-    dataTbl *tmp = headDataTbl->head;
+    dataList *pointer = malloc(sizeof(dataList));
+    dataList *temp = headLineStart->head;
 
-    if(p == NULL)
-        memAllocFail();
+    if(pointer == NULL)
+        memoryError();
 
     /* save the parameter of the data line we want to save */
-    p->data =  crtEnc();
-    addDataParam(p->data, num);
-    p->firstIC = IC;
-    p->next = NULL;
+    pointer->data =  resultList();
+    addDataValues(pointer->data, num);
+    pointer->ic_start = IC;
+    pointer->next = NULL;
 
-    if (!headDataTbl->head) /* if the first data line is not install */
-        headDataTbl->head = p;
+    if (!headLineStart->head) /* if the first data line is not install */
+        headLineStart->head = pointer;
 
     else{
 
-        while(tmp->next != NULL) /* we want to insert p to the last data line in the list */
-            tmp = tmp->next;
+        while(temp->next != NULL) /* we want to insert pointer to the last data line in the list */
+            temp = temp->next;
 
-        tmp->next = p;
+        temp->next = pointer;
     } /* end else */
 }
 
-void addDataParam(encoder *enc, int num){
+void addDataValues(opCode *opCoded, int num){
 
     int i;
 
     for(i = 0; i < 14; i++){
 
         if(num & (1<< i))
-            enc->param |= (1 << i);
+            opCoded->value |= (1 << i);
     } /* end for loop */
 }
 
-void initEncode(encoder *enc){
+void setOpCode(opCode *opCoded){
 
-    enc->param = 0;
+    opCoded->value = 0;
 }
 
-encoder *crtEnc(){
+opCode *resultList(){
 
-    encoder *p = malloc(sizeof(encoder));
+    opCode *pointer = malloc(sizeof(opCode));
 
-    if(!p)
-        memAllocFail();
+    if(!pointer)
+        memoryError();
 
-    p->param = 0;
+    pointer->value = 0;
 
-    return p;
+    return pointer;
 }
 
-int invalidName(char *name){
+int badName(char *name){
 
     int i ;
     /* name of instructors, directives and registers */
@@ -184,16 +184,16 @@ int invalidName(char *name){
     return 0;
 }
 
-void freeDataTbl(headData *list){
+void freeheadLineStart(headLine *list){
 
-    dataTbl *tmp = list->head;
+    dataList *temp = list->head;
 
     while(list->head != NULL){
 
         list->head = list->head->next;
-        free(tmp->data);
-        free(tmp);
-        tmp = list->head;
+        free(temp->data);
+        free(temp);
+        temp = list->head;
     } /* end while loop */
 
     free(list);
@@ -201,27 +201,27 @@ void freeDataTbl(headData *list){
 
 void freeMcrTbl(mcrHead *list){
 
-    mcrTbl *tmp = list->head;
+    mcrList *temp = list->head;
 
     while(list->head != NULL){
 
         list->head = list->head->next;
-        free(tmp);
-        tmp = list->head;
+        free(temp);
+        temp = list->head;
     } /* end while loop */
 
     free(list);
 }
 
-void freeSymTbl(symHead *list){
+void freeSymbolLine(symbolLine *list){
 
-    symTbl *tmp = list->head;
+    symbolList *temp = list->head;
 
     while(list->head != NULL){
 
         list->head = list->head->next;
-        free(tmp);
-        tmp = list->head;
+        free(temp);
+        temp = list->head;
     } /* end while loop */
 
     free(list);

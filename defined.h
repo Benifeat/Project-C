@@ -2,7 +2,7 @@
 
 #ifndef MAMAN14_CONSTANT_H
 #define MAMAN14_CONSTANT_H
-
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <string.h>
 #include <stdio.h>

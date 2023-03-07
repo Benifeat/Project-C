@@ -7,22 +7,22 @@
 
 /* relevant in the case of a jump address
  * change the relevant bit (8 - 11) depending on the parameters */
-void addParam(int param, int whichParam, encoder *enc);
+void editValues(int value, int spesificValue, opCode *opCoded);
 /* print label to .ob file */
-void addLblEncode(symHead *headSymTbl, encoder *enc, char *lblName, int *ext_Flag);
+void editLabelOpcode(symbolLine *symbolLineStart, opCode *opCoded, char *firstLabelName, int *ext_Flag);
 /* print label classify to .ob file */
-void addClassify(encoder *enc, int whichClassify);
+void editRelation(opCode *opCoded, int relation);
 /* converts the string of bits into a unique code */
-void convertEncode(encoder *enc, char bitLineStr[14]);
+void changeToOpCode(opCode *opCoded, char opCodeString[14]);
 /* print opcode to .ob file */
-void addOp(int instNum, encoder *enc);
+void addOp(int commandNumber, opCode *opCoded);
 /* print to .ob file */
-void prnObjFile(FILE *obFile, essentials *asmParam, encoder *tmpLine);
+void printOpToDotObj(FILE *obFile, data_base *asmValues, opCode *tempLine);
 /* change the relevant bit (0 - 3) depending on the parameters */
-void addAddr(int whichOper, int whichAddr, encoder *enc);
+void addAddress(int whichOp, int address, opCode *opCoded);
 /* print register to .ob file */
-void addRegEncode(encoder *enc, int regNum, int whichParam);
+void editOpCodeNumbers(opCode *opCoded, int regNum, int spesificValue);
 /* print numbers to .ob file */
-void addNumEncode(encoder *enc, int num);
+void addNumEncode(opCode *opCoded, int num);
 
 #endif /*MAMAN14_ENCODER_H*/

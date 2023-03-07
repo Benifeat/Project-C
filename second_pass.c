@@ -1,63 +1,63 @@
 
 
 #include "second_pass.h"
+#define _CRT_SECURE_NO_WARNINGS
+void editDotEnt(FILE *entFile, symbolLine *symbolLine, char *firstLabelName, int countLines, int *error) {
 
-void putEntFile(FILE *entFile, symHead *symHead, char *lblName, int lineCnt, int *error) {
-
-    symTbl *tmp = symHead->head;
+    symbolList *temp = symbolLine->head;
     char line[MAX_LINE] = {'\0'};
 
-    while (tmp) {
-        if (!strcmp(lblName, tmp->symName)) {
+    while (temp) {
+        if (!strcmp(firstLabelName, temp->symbolName)) {
 
-            if (!strcmp("ext", tmp->sign)) {
+            if (!strcmp("ext", temp->mark)) {
 
-                lblCantEnt(error, lineCnt);
+                extCantBeEnt(error, countLines);
                 return;
             } /* end second if */
 
-            sprintf(line, "%s\t\t%d\n", lblName, tmp->value);
+            sprintf(line, "%s\t\t%d\n", firstLabelName, temp->value);
             fputs(line, entFile);
             break;
         } /* end first if */
-        tmp = tmp->next;
+        temp = temp->next;
     } /* end while loop */
 }
 
-void putExtFile(FILE *extFile, char *lblName, int IC){
+void editDotExt(FILE *extFile, char *firstLabelName, int IC){
 
     char line[MAX_LINE] = {'\0'};
 
-    sprintf(line, "%s\t\t%d\n", lblName, IC);
+    sprintf(line, "%s\t\t%d\n", firstLabelName, IC);
     fputs(line, extFile);
 
 }
 
-int existLbl(symHead *symHead, char *lblName, int type, int *error, int lineCnt){
+int lastLabelChecks(symbolLine *symbolLine, char *firstLabelName, int type, int *error, int countLines){
 
-    symTbl *tmp = symHead->head;
-    int len = strlen(lblName);
+    symbolList *temp = symbolLine->head;
+    int len = strlen(firstLabelName);
 
-    while(tmp && len != 0) {
+    while(temp && len != 0) {
 
-        if (!strncmp(lblName, tmp->symName, len)) {
+        if (!strncmp(firstLabelName, temp->symbolName, len)) {
 
-            if (type && !strcmp(tmp->sign, "ext")) { /* .extern label statement in .entry statement */
+            if (type && !strcmp(temp->mark, "ext")) { /* .extern label statement in .entry statement */
 
-                lblCantEnt(error, lineCnt);
+                extCantBeEnt(error, countLines);
                 return 0;
             } /* end second if */
             return 1;
         } /* end first if */
 
-        tmp = tmp->next;
+        temp = temp->next;
     } /* end while  loop */
 
-    noLblStatement(error, lineCnt);
+    unDefienedLabel(error, countLines);
     return 0;
 }
 
-void second(essentials *asmParam, symHead *headSymTbl, headData *headDataTbl, char *amFileName, char *extFileName, char *entFileName, char *obFileName, int *error, int *ext_Flag, int *ent_Flag){
+void second(data_base *asmValues, symbolLine *symbolLineStart, headLine *headLineStart, char *amFileName, char *extFileName, char *entFileName, char *obFileName, int *error, int *ext_Flag, int *ent_Flag){
 
     FILE *amFile = NULL;
     FILE *extFile = NULL;
@@ -67,38 +67,38 @@ void second(essentials *asmParam, symHead *headSymTbl, headData *headDataTbl, ch
     char *ptrLine = NULL;
     char *op1[OP1_LENGTH] = {"not", "clr", "inc", "dec", "jmp", "bne", "red", "prn", "jsr"};
     char *op2[OP2_LENGTH] = {"mov", "cmp", "add", "sub", "lea"};
-    int lineCnt = 0;
-    asmParam->IC = 100;
+    int countLines = 0;
+    asmValues->IC = 100;
 
-    if(!(amFile = chkFileOpen(amFile, amFileName, "r+", error)))
+    if(!(amFile = fileNotCreated(amFile, amFileName, "r+", error)))
         return;
 
     if(ext_Flag) {
 
-        if (!(extFile = chkFileOpen(extFile, extFileName, "w+", error)))
+        if (!(extFile = fileNotCreated(extFile, extFileName, "w+", error)))
             return;
     } /* end if */
 
     if(ent_Flag) {
 
-        if (!(entFile = chkFileOpen(entFile, entFileName, "w+", error)))
+        if (!(entFile = fileNotCreated(entFile, entFileName, "w+", error)))
             return;
     } /* end if */
 
-    if(!(obFile = chkFileOpen(obFile, obFileName, "w+", error)))
+    if(!(obFile = fileNotCreated(obFile, obFileName, "w+", error)))
         return;
 
     while(fgets(line, MAX_LINE, amFile) != NULL) { /*check line after line in the as file*/
 
-        char lblName[MAX_SYMBOL] = {'\0'};
-        int lblFlag;
+        char firstLabelName[MAX_SYMBOL] = {'\0'};
+        int firstLabelFlag;
         int op1Flag = 0;
         int op2Flag = 0;
         int i;
         ptrLine = line;
-        lineCnt++;
+        countLines++;
 
-        skipTabSpace(ptrLine); /* we want to point on the first char in the line text */
+        no_tabs(ptrLine); /* we want to point on the first char in the line text */
 
         /* if it is an empty line we skip */
         if(*ptrLine == '\n' || *ptrLine == '\0')
@@ -108,13 +108,13 @@ void second(essentials *asmParam, symHead *headSymTbl, headData *headDataTbl, ch
         if(*ptrLine == ';') \
             continue;
 
-        lblFlag = isLbl(ptrLine);
+        firstLabelFlag = label(ptrLine);
 
-        if(lblFlag) {
+        if(firstLabelFlag) {
 
-            saveLblName(ptrLine,lblName);
-            ptrLine += strlen(lblName); /* pass the label name and the character ':' */
-            skipTabSpace(ptrLine);
+            saveLabel(ptrLine,firstLabelName);
+            ptrLine += strlen(firstLabelName); /* pass the label name and the character ':' */
+            no_tabs(ptrLine);
         } /* end if */
 
         if (*ptrLine == '.') { /* the start of the data, string, extern, entry directive command */
@@ -123,11 +123,11 @@ void second(essentials *asmParam, symHead *headSymTbl, headData *headDataTbl, ch
             if (checkWord(ptrLine,".entry")) {
 
                 ptrLine += 6;
-                skipTabSpace(ptrLine);
-                saveSym(ptrLine, lblName);
+                no_tabs(ptrLine);
+                saveLabelToSymbol(ptrLine, firstLabelName);
 
-                if(existLbl(headSymTbl, lblName, 1, error, lineCnt)) /* check if the label name exists in the symbol table */
-                    putEntFile(entFile, headSymTbl, lblName, lineCnt, error);
+                if(lastLabelChecks(symbolLineStart, firstLabelName, 1, error, countLines)) /* check if the label name exists in the symbol table */
+                    editDotEnt(entFile, symbolLineStart, firstLabelName, countLines, error);
 
                 continue;
             } /* end second if */
@@ -139,7 +139,7 @@ void second(essentials *asmParam, symHead *headSymTbl, headData *headDataTbl, ch
             /*we already have .data and .string in the data linked list, so we skip them */
             if(checkWord(ptrLine, ".data") || checkWord(ptrLine, ".string")){
 
-                prnDataLine(obFile, asmParam, headDataTbl, asmParam->IC);
+                editDotObFile(obFile, asmValues, headLineStart, asmValues->IC);
                 continue;
             } /* end if */
         } /* end first if */
@@ -147,19 +147,19 @@ void second(essentials *asmParam, symHead *headSymTbl, headData *headDataTbl, ch
         /* instruction command with zero operand: "rts", "stop" */
         if(checkWord(ptrLine, "rts")){
 
-            encoder *tmpLine = crtEnc();
-            addOp(14, tmpLine);
-            prnObjFile(obFile, asmParam, tmpLine);
-            asmParam->IC += 1;
+            opCode *tempLine = resultList();
+            addOp(14, tempLine);
+            printOpToDotObj(obFile, asmValues, tempLine);
+            asmValues->IC += 1;
             continue;
         } /* end if */
 
         if(checkWord(ptrLine, "stop")){
 
-            encoder *tmpLine = crtEnc();
-            addOp(15, tmpLine);
-            prnObjFile(obFile, asmParam, tmpLine);
-            asmParam->IC += 1;
+            opCode *tempLine = resultList();
+            addOp(15, tempLine);
+            printOpToDotObj(obFile, asmValues, tempLine);
+            asmValues->IC += 1;
             continue;
         } /* end if */
 
@@ -170,7 +170,7 @@ void second(essentials *asmParam, symHead *headSymTbl, headData *headDataTbl, ch
             if(checkWord(ptrLine, op1[i])){
 
                 ptrLine += strlen(op1[i]);
-                readOp1(obFile, extFile, asmParam, headSymTbl, ptrLine, i, error, lineCnt);
+                getOp1(obFile, extFile, asmValues, symbolLineStart, ptrLine, i, error, countLines);
                 op1Flag = 1;
                 break;
             } /* end if */
@@ -186,7 +186,7 @@ void second(essentials *asmParam, symHead *headSymTbl, headData *headDataTbl, ch
             if(checkWord(ptrLine, op2[i])){
 
                 ptrLine += strlen(op2[i]);
-                readOp2(obFile, extFile, asmParam, headSymTbl, ptrLine, i, error, lineCnt);
+                getOp2(obFile, extFile, asmValues, symbolLineStart, ptrLine, i, error, countLines);
                 op2Flag = 1;
                 break;
             } /* end if */
@@ -196,9 +196,9 @@ void second(essentials *asmParam, symHead *headSymTbl, headData *headDataTbl, ch
             continue;
     }
 
-    if(asmParam->IC - 100 > MAX_LENGTH){
+    if(asmValues->IC - 100 > MAX_LENGTH){
 
-        exceededDataAmount(error);
+        dataOverbound(error);
     } /* end if */
 
     fclose(amFile);
@@ -211,133 +211,133 @@ void second(essentials *asmParam, symHead *headSymTbl, headData *headDataTbl, ch
         fclose(entFile);
 }
 
-void prnDataLine(FILE *obFile, essentials *asmParam, headData *headDataTbl, int currIC){
+void editDotObFile(FILE *obFile, data_base *asmValues, headLine *headLineStart, int currentIC){
 
-    dataTbl *tmp = headDataTbl->head;
+    dataList *temp = headLineStart->head;
 
-    while(tmp != NULL && tmp->firstIC == currIC){
+    while(temp != NULL && temp->ic_start == currentIC){
 
-        prnObjFile(obFile,asmParam, tmp->data);
-        asmParam->IC += 1;
-        headDataTbl->head = headDataTbl->head->next;
-        free(tmp->data);
-        free(tmp);
-        tmp = headDataTbl->head;
+        printOpToDotObj(obFile,asmValues, temp->data);
+        asmValues->IC += 1;
+        headLineStart->head = headLineStart->head->next;
+        free(temp->data);
+        free(temp);
+        temp = headLineStart->head;
     } /* end while loop*/
 }
 
-void saveSym(char *line, char *lblName){
+void saveLabelToSymbol(char *line, char *firstLabelName){
 
     int i = 0;
 
     for(i = 0 ; line[i] != '\n' && line[i] != '\0' && line[i] != '\t' && line[i] != ' ' && line[i] != ':' && line[i] != ')' && line[i] != ',' && i < MAX_SYMBOL ; i++){
 
-        lblName[i] = line[i];
+        firstLabelName[i] = line[i];
 
         if(line[i] == '('){
 
-            lblName[i+1] = '\0';
+            firstLabelName[i+1] = '\0';
             return;
         } /* end if */
     } /* end for */
 
-    lblName[i] = '\0';
+    firstLabelName[i] = '\0';
 }
 
-void jmpLbl(char *lblName, int *flag){
+void jumpToLabelAddress(char *firstLabelName, int *flag){
 
     int i = 0;
 
-    for(i = 0 ; lblName[i] != '\0' ; i++){
+    for(i = 0 ; firstLabelName[i] != '\0' ; i++){
 
-        if(lblName[i] == '('){
+        if(firstLabelName[i] == '('){
 
-            lblName[i] = '\0';
+            firstLabelName[i] = '\0';
             *flag = 1;
             return;
         } /* end if */
 
-        if(lblName[i] == ',' || lblName[i] == ')'){
+        if(firstLabelName[i] == ',' || firstLabelName[i] == ')'){
 
-            lblName[i] = '\0';
+            firstLabelName[i] = '\0';
             return;
         } /* end if */
     } /* end for loop */
 }
 
-void readOp1(FILE *obFile, FILE *extFile, essentials *asmParam, symHead *headSymTbl, char *ptrLine, int instInd, int *error, int lineCnt){
+void getOp1(FILE *obFile, FILE *extFile, data_base *asmValues, symbolLine *symbolLineStart, char *ptrLine, int commandIndex, int *error, int countLines){
 
     enum{not = 0, clr, inc, dec, jmp, bne, red, prn, jsr};
-    enum{IMMEDIATE = 0, DIRECT, JUMP, DIR_REGI}; /* address */
-    enum{SOURCE = 1, DEST}; /* which operand */
+    enum{IMMEDIATE = 0, PATH, JUMP, DIRECT_REGISTER}; /* address */
+    enum{SOURCE = 1, DESTINATION}; /* which operand */
     enum{LABEL = 1, REGISTER}; /* which parameter */
     enum {E = 1, R}; /* which classify */
 
     int num = 0;
     int ext_Flag = 0; /* equal to 1 if we reach to external file */
-    int jmpAddrFlag = 0; /* equal to 1 if we reach '(' after label name */
+    int jumpToAddress = 0; /* equal to 1 if we reach '(' after label name */
     int firstParam = 0;
-    int regi = 0; /* equal to 1 if the first parameter in the jump address is register */
-    char lblName[MAX_SYMBOL] = {'\0'};
-    encoder *tmpLine = crtEnc();
+    int registerFlag = 0; /* equal to 1 if the first parameter in the jump address is register */
+    char firstLabelName[MAX_SYMBOL] = {'\0'};
+    opCode *tempLine = resultList();
 
-    switch (instInd) {
+    switch (commandIndex) {
 
         case not:
-            addOp(4, tmpLine);
+            addOp(4, tempLine);
             break;
 
         case clr:
-            addOp(5, tmpLine);
+            addOp(5, tempLine);
             break;
 
         case inc:
-            addOp(7, tmpLine);
+            addOp(7, tempLine);
             break;
 
         case dec:
-            addOp(8, tmpLine);
+            addOp(8, tempLine);
             break;
 
         case jmp:
-            addOp(9, tmpLine);
+            addOp(9, tempLine);
             break;
 
         case bne:
-            addOp(10, tmpLine);
+            addOp(10, tempLine);
             break;
 
         case red:
-            addOp(11, tmpLine);
+            addOp(11, tempLine);
             break;
 
         case prn:
-            addOp(12, tmpLine);
+            addOp(12, tempLine);
             break;
 
         case jsr:
-            addOp(13, tmpLine);
+            addOp(13, tempLine);
             break;
 
         default:
             break;
     } /* end switch */
 
-    skipTabSpace(ptrLine);
+    no_tabs(ptrLine);
 
     if(*ptrLine == 'r'){
 
-        if(chkReg(ptrLine[1]) != -1) {
+        if(checkRegister(ptrLine[1]) != -1) {
 
-            num = chkReg(ptrLine[1]);
-            addAddr(DEST, DIR_REGI, tmpLine);
-            prnObjFile(obFile, asmParam, tmpLine);
-            asmParam->IC += 1;
-            initEncode(tmpLine);
-            addRegEncode(tmpLine, num, 1);
-            prnObjFile(obFile, asmParam, tmpLine);
-            asmParam->IC += 1;
-            free(tmpLine);
+            num = checkRegister(ptrLine[1]);
+            addAddress(DESTINATION, DIRECT_REGISTER, tempLine);
+            printOpToDotObj(obFile, asmValues, tempLine);
+            asmValues->IC += 1;
+            setOpCode(tempLine);
+            editOpCodeNumbers(tempLine, num, 1);
+            printOpToDotObj(obFile, asmValues, tempLine);
+            asmValues->IC += 1;
+            free(tempLine);
             return;
         } /* end second if */
     } /* end first if */
@@ -346,40 +346,42 @@ void readOp1(FILE *obFile, FILE *extFile, essentials *asmParam, symHead *headSym
 
         ptrLine += 1; /* point on the number */
         num = atoi(ptrLine);
-        prnObjFile(obFile, asmParam, tmpLine);
-        asmParam->IC += 1;
-        initEncode(tmpLine);
-        addNumEncode(tmpLine, num);
-        prnObjFile(obFile, asmParam, tmpLine);
-        asmParam->IC += 1;
-        free(tmpLine);
+        printOpToDotObj(obFile, asmValues, tempLine);
+        asmValues->IC += 1;
+        setOpCode(tempLine);
+        addNumEncode(tempLine, num);
+        printOpToDotObj(obFile, asmValues, tempLine);
+        asmValues->IC += 1;
+        free(tempLine);
         return;
     } /* end else if */
 
     else {
 
-        saveSym(ptrLine, lblName);
-        jmpLbl(lblName, &jmpAddrFlag);
+        saveLabelToSymbol(ptrLine, firstLabelName);
+        jumpToLabelAddress(firstLabelName, &jumpToAddress);
 
-        if (!existLbl(headSymTbl, lblName, 0, error, lineCnt)) {
+        if (!lastLabelChecks(symbolLineStart, firstLabelName, 0, error, countLines)) {
 
-            free(tmpLine);
+            free(tempLine);
             return;
         } /* end if */
 
-        if (jmpAddrFlag) {
+        if (jumpToAddress) {
 
             skipChars(ptrLine);
             ptrLine++;
-            encoder *secondLine = crtEnc();
-            encoder *thirdLine = crtEnc();
+	    opCode *secondString;
+            secondString = resultList();
+            opCode *thirdString; 
+	    thirdString = resultList();
 
-            addAddr(DEST, JUMP, tmpLine);
-            addLblEncode(headSymTbl, secondLine, lblName, &ext_Flag);
+            addAddress(DESTINATION, JUMP, tempLine);
+            editLabelOpcode(symbolLineStart, secondString, firstLabelName, &ext_Flag);
 
             if(ext_Flag) {
 
-                putExtFile(extFile, lblName, asmParam->IC + 1);
+                editDotExt(extFile, firstLabelName, asmValues->IC + 1);
                 ext_Flag = 0;
             } /* end second if */
 
@@ -387,41 +389,41 @@ void readOp1(FILE *obFile, FILE *extFile, essentials *asmParam, symHead *headSym
 
                 if (*ptrLine == 'r') {
 
-                    if (chkReg(ptrLine[1]) != -1) {
+                    if (checkRegister(ptrLine[1]) != -1) {
 
-                        num = chkReg(ptrLine[1]);
+                        num = checkRegister(ptrLine[1]);
 
-                        if (regi || firstParam) {
+                        if (registerFlag || firstParam) {
 
-                            addParam(REGISTER, 2, tmpLine);
-                            prnObjFile(obFile, asmParam, tmpLine);
-                            asmParam->IC += 1;
-                            prnObjFile(obFile, asmParam, secondLine);
-                            asmParam->IC += 1;
+                            editValues(REGISTER, 2, tempLine);
+                            printOpToDotObj(obFile, asmValues, tempLine);
+                            asmValues->IC += 1;
+                            printOpToDotObj(obFile, asmValues, secondString);
+                            asmValues->IC += 1;
 
                             if (firstParam) {
 
-                                prnObjFile(obFile, asmParam, thirdLine);
-                                asmParam->IC += 1;
-                                initEncode(thirdLine);
+                                printOpToDotObj(obFile, asmValues, thirdString);
+                                asmValues->IC += 1;
+                                setOpCode(thirdString);
                             } /* end fourth if */
 
-                            addRegEncode(thirdLine, num, 2);
-                            prnObjFile(obFile, asmParam, thirdLine);
-                            asmParam->IC += 1;
-                            free(tmpLine);
-                            free(secondLine);
-                            free(thirdLine);
+                            editOpCodeNumbers(thirdString, num, 2);
+                            printOpToDotObj(obFile, asmValues, thirdString);
+                            asmValues->IC += 1;
+                            free(tempLine);
+                            free(secondString);
+                            free(thirdString);
                             return;
                         } /* end third if */
 
-                        addParam(REGISTER, 1, tmpLine);
-                        addRegEncode(thirdLine, num, 1);
-                        regi = 1;
+                        editValues(REGISTER, 1, tempLine);
+                        editOpCodeNumbers(thirdString, num, 1);
+                        registerFlag = 1;
                         skipChars(ptrLine); /* skip the register */
-                        skipTabSpace(ptrLine);
+                        no_tabs(ptrLine);
                         ptrLine += 1; /* skip the comma */
-                        skipTabSpace(ptrLine);
+                        no_tabs(ptrLine);
                     } /* end second if */
                 } /* end first if */
 
@@ -430,183 +432,183 @@ void readOp1(FILE *obFile, FILE *extFile, essentials *asmParam, symHead *headSym
                     ptrLine += 1;
                     num = atoi(ptrLine); /* point on the number */
 
-                    if (regi || firstParam) {
+                    if (registerFlag || firstParam) {
 
-                        prnObjFile(obFile, asmParam, tmpLine);
-                        asmParam->IC += 1;
-                        prnObjFile(obFile, asmParam, secondLine);
-                        asmParam->IC += 1;
-                        prnObjFile(obFile, asmParam, thirdLine);
-                        asmParam->IC += 1;
-                        initEncode(thirdLine);
-                        addNumEncode(thirdLine, num);
-                        prnObjFile(obFile, asmParam, thirdLine);
-                        asmParam->IC += 1;
-                        free(tmpLine);
-                        free(secondLine);
-                        free(thirdLine);
+                        printOpToDotObj(obFile, asmValues, tempLine);
+                        asmValues->IC += 1;
+                        printOpToDotObj(obFile, asmValues, secondString);
+                        asmValues->IC += 1;
+                        printOpToDotObj(obFile, asmValues, thirdString);
+                        asmValues->IC += 1;
+                        setOpCode(thirdString);
+                        addNumEncode(thirdString, num);
+                        printOpToDotObj(obFile, asmValues, thirdString);
+                        asmValues->IC += 1;
+                        free(tempLine);
+                        free(secondString);
+                        free(thirdString);
                         return;
                     } /* end if */
 
-                    addNumEncode(thirdLine, num);
+                    addNumEncode(thirdString, num);
                     firstParam = 1;
                     skipChars(ptrLine); /* skip the number */
-                    skipTabSpace(ptrLine);
+                    no_tabs(ptrLine);
                     ptrLine += 1; /* skip the comma */
-                    skipTabSpace(ptrLine);
+                    no_tabs(ptrLine);
                 } /* end else if */
 
                 else {
 
-                    saveSym(ptrLine, lblName);
+                    saveLabelToSymbol(ptrLine, firstLabelName);
 
-                    if (!existLbl(headSymTbl, lblName, 0, error, lineCnt)) {
+                    if (!lastLabelChecks(symbolLineStart, firstLabelName, 0, error, countLines)) {
 
-                        free(tmpLine);
-                        free(secondLine);
-                        free(thirdLine);
+                        free(tempLine);
+                        free(secondString);
+                        free(thirdString);
                         return;
                     } /* end if */
 
-                    if (regi || firstParam) {
+                    if (registerFlag || firstParam) {
 
-                        addParam(LABEL, 2, tmpLine);
-                        prnObjFile(obFile, asmParam, tmpLine);
-                        asmParam->IC += 1;
-                        prnObjFile(obFile, asmParam, secondLine);
-                        asmParam->IC += 1;
-                        prnObjFile(obFile, asmParam, thirdLine);
-                        asmParam->IC += 1;
-                        initEncode(thirdLine);
-                        addLblEncode(headSymTbl, thirdLine, lblName, &ext_Flag);
+                        editValues(LABEL, 2, tempLine);
+                        printOpToDotObj(obFile, asmValues, tempLine);
+                        asmValues->IC += 1;
+                        printOpToDotObj(obFile, asmValues, secondString);
+                        asmValues->IC += 1;
+                        printOpToDotObj(obFile, asmValues, thirdString);
+                        asmValues->IC += 1;
+                        setOpCode(thirdString);
+                        editLabelOpcode(symbolLineStart, thirdString, firstLabelName, &ext_Flag);
 
                         if(ext_Flag)
-                            putExtFile(extFile, lblName, asmParam->IC);
+                            editDotExt(extFile, firstLabelName, asmValues->IC);
 
-                        prnObjFile(obFile, asmParam, thirdLine);
-                        asmParam->IC += 1;
-                        free(tmpLine);
-                        free(secondLine);
-                        free(thirdLine);
+                        printOpToDotObj(obFile, asmValues, thirdString);
+                        asmValues->IC += 1;
+                        free(tempLine);
+                        free(secondString);
+                        free(thirdString);
                         return;
                     } /* end if */
 
-                    addParam(LABEL, 1, tmpLine);
-                    addLblEncode(headSymTbl, thirdLine, lblName, &ext_Flag);
+                    editValues(LABEL, 1, tempLine);
+                    editLabelOpcode(symbolLineStart, thirdString, firstLabelName, &ext_Flag);
 
                     if(ext_Flag) {
 
-                        putExtFile(extFile, lblName, asmParam->IC + 2);
+                        editDotExt(extFile, firstLabelName, asmValues->IC + 2);
                         ext_Flag = 0;
                     } /* end if */
 
                     firstParam = 1;
                     skipChars(ptrLine); /* skip the label name */
-                    skipTabSpace(ptrLine);
+                    no_tabs(ptrLine);
                     ptrLine += 1; /* skip the comma */
-                    skipTabSpace(ptrLine);
+                    no_tabs(ptrLine);
                 } /* end else */
             } /* end while loop */
         } /* end first if */
 
-        addAddr(DEST, DIRECT, tmpLine);
-        prnObjFile(obFile, asmParam, tmpLine);
-        asmParam->IC += 1;
-        initEncode(tmpLine);
-        addLblEncode(headSymTbl, tmpLine, lblName, &ext_Flag);
+        addAddress(DESTINATION, PATH, tempLine);
+        printOpToDotObj(obFile, asmValues, tempLine);
+        asmValues->IC += 1;
+        setOpCode(tempLine);
+        editLabelOpcode(symbolLineStart, tempLine, firstLabelName, &ext_Flag);
 
         if(ext_Flag) {
 
-            putExtFile(extFile, lblName, asmParam->IC);
+            editDotExt(extFile, firstLabelName, asmValues->IC);
             ext_Flag = 0;
         } /* end if */
 
-        prnObjFile(obFile, asmParam, tmpLine);
-        asmParam->IC += 1;
-        free(tmpLine);
+        printOpToDotObj(obFile, asmValues, tempLine);
+        asmValues->IC += 1;
+        free(tempLine);
     } /* end else */
 }
 
-void readOp2(FILE *obFile, FILE *extFile, essentials *asmParam, symHead *headSymTbl, char *ptrLine, int instInd, int *error, int lineCnt) {
+void getOp2(FILE *obFile, FILE *extFile, data_base *asmValues, symbolLine *symbolLineStart, char *ptrLine, int commandIndex, int *error, int countLines) {
 
     enum {mov = 0, cmp, add, sub, lea};
-    enum {IMMEDIATE = 0, DIRECT, JUMP, DIR_REGI}; /* address */
-    enum {SOURCE = 1, DEST}; /* which operand */
+    enum {IMMEDIATE = 0, PATH, JUMP, DIRECT_REGISTER}; /* address */
+    enum {SOURCE = 1, DESTINATION}; /* which operand */
     enum {LABEL = 1, REGISTER}; /* which parameter */
 
     int num = 0;
     int ext_Flag = 0; /* equal to 1 if we reach to external file */
     int firstParam = 0;
-    int regi = 0; /* equal to 1 if the first parameter is register */
-    char lblName[MAX_SYMBOL] = {'\0'};
-    encoder *firstLine = crtEnc();
-    encoder *tmpLine = crtEnc();
+    int registerFlag = 0; /* equal to 1 if the first parameter is register */
+    char firstLabelName[MAX_SYMBOL] = {'\0'};
+    opCode *firstString = resultList();
+    opCode *tempLine = resultList();
 
 
-    switch (instInd) {
+    switch (commandIndex) {
 
         case mov:
             break;
 
         case cmp:
-            addOp(1, firstLine);
+            addOp(1, firstString);
             break;
 
         case add:
-            addOp(2, firstLine);
+            addOp(2, firstString);
             break;
 
         case sub:
-            addOp(3, firstLine);
+            addOp(3, firstString);
             break;
 
         case lea:
-            addOp(6, firstLine);
+            addOp(6, firstString);
             break;
 
         default:
             break;
     } /* end switch */
 
-    skipTabSpace(ptrLine); /* point on the first parameter */
+    no_tabs(ptrLine); /* point on the first parameter */
 
     while (*ptrLine != '\n' && *ptrLine != '\0') {
 
         if (*ptrLine == 'r') {
 
-            if (chkReg(ptrLine[1]) != -1) {
+            if (checkRegister(ptrLine[1]) != -1) {
 
-                num = chkReg(ptrLine[1]);
+                num = checkRegister(ptrLine[1]);
 
-                if (regi || firstParam) {
+                if (registerFlag || firstParam) {
 
-                    addAddr(DEST, DIR_REGI, firstLine);
-                    prnObjFile(obFile, asmParam, firstLine);
-                    asmParam->IC += 1; /* for the first parameter */
+                    addAddress(DESTINATION, DIRECT_REGISTER, firstString);
+                    printOpToDotObj(obFile, asmValues, firstString);
+                    asmValues->IC += 1; /* for the first parameter */
 
                     if (firstParam) {
 
-                        prnObjFile(obFile, asmParam, tmpLine);
-                        asmParam->IC += 1;
-                        initEncode(tmpLine);
+                        printOpToDotObj(obFile, asmValues, tempLine);
+                        asmValues->IC += 1;
+                        setOpCode(tempLine);
                     } /* end fourth if */
 
-                    addRegEncode(tmpLine, num, 2);
-                    prnObjFile(obFile, asmParam, tmpLine);
-                    asmParam->IC += 1;
-                    free(firstLine);
-                    free(tmpLine);
+                    editOpCodeNumbers(tempLine, num, 2);
+                    printOpToDotObj(obFile, asmValues, tempLine);
+                    asmValues->IC += 1;
+                    free(firstString);
+                    free(tempLine);
                     return;
                 } /* end third if */
 
-                addAddr(SOURCE, DIR_REGI, firstLine);
-                addRegEncode(tmpLine, num, 1);
+                addAddress(SOURCE, DIRECT_REGISTER, firstString);
+                editOpCodeNumbers(tempLine, num, 1);
 
-                regi = 1;
+                registerFlag = 1;
                 skipChars(ptrLine); /* skip the register */
-                skipTabSpace(ptrLine);
+                no_tabs(ptrLine);
                 ptrLine += 1; /* skip the comma */
-                skipTabSpace(ptrLine);
+                no_tabs(ptrLine);
             } /* end second if */
         } /* end first if */
 
@@ -615,77 +617,77 @@ void readOp2(FILE *obFile, FILE *extFile, essentials *asmParam, symHead *headSym
             ptrLine += 1; /* point on the number */
             num = atoi(ptrLine);
 
-            if (regi || firstParam) {
+            if (registerFlag || firstParam) {
 
-                prnObjFile(obFile, asmParam, firstLine);
-                asmParam->IC += 1;
-                prnObjFile(obFile, asmParam, tmpLine);
-                asmParam->IC += 1;
-                initEncode(tmpLine);
-                addNumEncode(tmpLine, num);
-                prnObjFile(obFile, asmParam, tmpLine);
-                asmParam->IC += 1;
-                free(tmpLine);
-                free(firstLine);
+                printOpToDotObj(obFile, asmValues, firstString);
+                asmValues->IC += 1;
+                printOpToDotObj(obFile, asmValues, tempLine);
+                asmValues->IC += 1;
+                setOpCode(tempLine);
+                addNumEncode(tempLine, num);
+                printOpToDotObj(obFile, asmValues, tempLine);
+                asmValues->IC += 1;
+                free(tempLine);
+                free(firstString);
                 return;
             } /* end if */
 
-            addNumEncode(tmpLine, num);
+            addNumEncode(tempLine, num);
             firstParam = 1;
             skipChars(ptrLine); /* skip the number */
-            skipTabSpace(ptrLine);
+            no_tabs(ptrLine);
             ptrLine += 1; /* skip the comma */
-            skipTabSpace(ptrLine);
+            no_tabs(ptrLine);
         } /* end else if */
 
         else {
 
-            saveSym(ptrLine, lblName);
+            saveLabelToSymbol(ptrLine, firstLabelName);
 
-            if (!existLbl(headSymTbl, lblName, 0, error, lineCnt)) {
+            if (!lastLabelChecks(symbolLineStart, firstLabelName, 0, error, countLines)) {
 
-                free(firstLine);
-                free(tmpLine);
+                free(firstString);
+                free(tempLine);
                 return;
             } /* end if */
 
-            if (regi || firstParam) {
+            if (registerFlag || firstParam) {
 
-                addAddr(DEST, DIRECT, firstLine);
-                prnObjFile(obFile, asmParam, firstLine);
-                asmParam->IC += 1;
-                prnObjFile(obFile, asmParam, tmpLine);
-                asmParam->IC += 1;
-                initEncode(tmpLine);
-                addLblEncode(headSymTbl, tmpLine, lblName, &ext_Flag);
+                addAddress(DESTINATION, PATH, firstString);
+                printOpToDotObj(obFile, asmValues, firstString);
+                asmValues->IC += 1;
+                printOpToDotObj(obFile, asmValues, tempLine);
+                asmValues->IC += 1;
+                setOpCode(tempLine);
+                editLabelOpcode(symbolLineStart, tempLine, firstLabelName, &ext_Flag);
 
                 if(ext_Flag) {
 
-                    putExtFile(extFile, lblName, asmParam->IC);
+                    editDotExt(extFile, firstLabelName, asmValues->IC);
                     ext_Flag = 0;
                 } /* end second if */
 
-                prnObjFile(obFile, asmParam, tmpLine);
-                asmParam->IC += 1;
-                free(tmpLine);
-                free(firstLine);
+                printOpToDotObj(obFile, asmValues, tempLine);
+                asmValues->IC += 1;
+                free(tempLine);
+                free(firstString);
                 return;
             } /* end first if */
 
-            addAddr(SOURCE, DIRECT, firstLine);
-            addLblEncode(headSymTbl, tmpLine, lblName, &ext_Flag);
+            addAddress(SOURCE, PATH, firstString);
+            editLabelOpcode(symbolLineStart, tempLine, firstLabelName, &ext_Flag);
 
             if(ext_Flag) {
 
-                putExtFile(extFile, lblName, asmParam->IC + 1);
+                editDotExt(extFile, firstLabelName, asmValues->IC + 1);
                 ext_Flag = 0;
             } /* end if */
 
             firstParam = 1;
             skipChars(ptrLine); /* skip the number */
-            skipTabSpace(ptrLine);
+            no_tabs(ptrLine);
             ptrLine += 1; /* skip the comma */
-            skipTabSpace(ptrLine);
+            no_tabs(ptrLine);
         } /* end else */
     } /* end while loop */
 }

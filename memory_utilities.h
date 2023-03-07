@@ -7,72 +7,72 @@
 /* macro parameters */
 typedef struct macro{
     char mcrName[MAX_LINE];
-    int pos_FirstMcrLine;
-    int numOfLines;
+    int mcrLocation;
+    int numberOfLines;
     struct macro *next;
-} mcrTbl;
+} mcrList;
 /* macro table head pointer */
 typedef struct mcrTblHead{
-    mcrTbl *head;
+    mcrList *head;
 }mcrHead;
 /* symbol parameters */
 typedef struct symbol{
-    char symName[MAX_SYMBOL];
+    char symbolName[MAX_SYMBOL];
     int value;
-    char sign[MAX_TYPE];
+    char mark[MAX_TYPE];
     struct symbol *next;
-}symTbl;
+}symbolList;
 /* symbol table head pointer */
 typedef struct symTblHead{
-    symTbl *head;
-}symHead;
+    symbolList *head;
+}symbolLine;
 /* number of bit in the incoder - 14 */
-typedef struct encoder{
-    unsigned int param:14;
-}encoder;
+typedef struct opCode{
+    unsigned int value:14;
+}opCode;
 /* data table parameters */
-typedef struct dataTbl{
-    encoder *data;
-    int firstIC;
-    struct dataTbl *next;
-}dataTbl;
+typedef struct dataList{
+    opCode *data;
+    int ic_start;
+    struct dataList *next;
+}dataList;
 /* data table head pointer */
 typedef struct dataTblHead{
-    dataTbl *head;
-}headData;
+    dataList *head;
+}headLine;
 /* assembler parameters */
 typedef struct esnParam{
     int IC;
     int DC;
-} essentials;
+} data_base;
 /* in this function we allocate memory to head of the list of macros */
-mcrHead *crtMcrTbl();
+mcrHead *createMcrList();
 /* in this function we allocate memory for the essential variables: IC, DC */
-essentials *crtEsn();
+data_base *definedMemory();
 /* in this function we allocate memory to head of the list of symbols */
-symHead *crtSymTbl();
+symbolLine *createSymbolLine();
 /* in this function we allocate memory to head of the list of data lines */
-headData *crtDataTbl();
+headLine *createHeadLine();
 /* if we do not have an allocation error we put all the data of the macro in the macro table, else we return error */
-void addMcrTbl(mcrHead *headMcr, char *name, int posFirstLine, int linesAmount);
+void addMcrList(mcrHead *headMcr, char *name, int firstLineLocation, int amountOfLines);
 /* if we do not have an allocation error we put all the symbol parameters in the symbol table, else we return error */
-void addSymTbl(symHead *sym, char *labelName, char *type, int IC);
+void addSymbolList(symbolLine *symbol, char *labelName, char *type, int IC);
 /* add the data line */
-void addDataLine(headData *headDataTbl, int num, int IC);
+void addDataLine(headLine *headLineStart, int num, int IC);
 /* add the data parameter */
-void addDataParam(encoder *enc, int num);
-/* initilize encoder param to 0 */
-void initEncode(encoder *enc);
+void addDataValues(opCode *opCoded, int num);
+/* initilize opCode value to 0 */
+void setOpCode(opCode *opCoded);
 /* if we do not have an allocation error initialize all the data line parameters and return a pointer to this line */
-encoder *crtEnc();
+opCode *resultList();
 /* check if the name is instruction or guidance or register name, else return false */
-int invalidName(char *name);
+int badName(char *name);
 /* free the data table */
-void freeDataTbl(headData *list);
+void freeheadLineStart(headLine *list);
 /* free the macro table */
 void freeMcrTbl(mcrHead *list);
 /* free the symbol table */
-void freeSymTbl(symHead *list);
+void freeSymbolLine(symbolLine *list);
 
 
 #endif /*MAMAN14_AUXILIARY_STRUCTURES_H*/

@@ -8,14 +8,14 @@
 #include "assembler.h"
 
 /* skip the spaces and tabs in the beginning */
-void skipTabSpace(char *p);
+void no_tabs(char *pointer);
 /* remove all spaces from a given string */
-void remSpaces(char *p);
+void no_spaces(char *pointer);
 /* process to open the macros */
 void openMcr(char *amFileName, char *asFileName, int *error);
 /* check if we get to macro name after we past the block of this macro */
-int chkMcrName(mcrHead *mcr, char *line, FILE *asFile, FILE *source);
+int checkMcr(mcrHead *mcr, char *line, FILE *asFile, FILE *source);
 /* check if we get to macro block */
-int chkWord (char *line, char *word);
+int goodMcr (char *line, char *word);
 
 #endif /*MAMAN14_PRE_ASM_H*/

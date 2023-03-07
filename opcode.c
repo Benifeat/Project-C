@@ -2,23 +2,23 @@
 
 #include "opcode.h"
 
-void addParam(int param, int whichParam, encoder *enc){
+void editValues(int value, int spesificValue, opCode *opCoded){
 
     int i;
 
-    if(whichParam == 1) /* param 1 */
+    if(spesificValue == 1) /* value 1 */
         i = 12;
-    else /* param 2 */
+    else /* value 2 */
         i = 10;
 
-    switch (param) {
+    switch (value) {
 
         case 1: /* it is a label name as a parameter */
-            enc->param |= (1 << i);
+            opCoded->value |= (1 << i);
             break;
 
         case 2: /* it is a register as a parameter */
-            enc->param |= (1 << (i+1)) + (1 << i);
+            opCoded->value |= (1 << (i+1)) + (1 << i);
             break;
 
         default:
@@ -26,43 +26,43 @@ void addParam(int param, int whichParam, encoder *enc){
     } /* end switch */
 }
 
-void addLblEncode(symHead *headSymTbl, encoder *enc, char *lblName, int *ext_Flag){
+void editLabelOpcode(symbolLine *symbolLineStart, opCode *opCoded, char *firstLabelName, int *ext_Flag){
 
-    symTbl *tmp = headSymTbl->head;
-    int whichClassify = 2; /* R - relocatable */
+    symbolList *temp = symbolLineStart->head;
+    int relation = 2; /* R - relocatable */
 
-    while (tmp != NULL){
+    while (temp != NULL){
 
-        if(!strcmp(tmp->symName, lblName)){
+        if(!strcmp(temp->symbolName, firstLabelName)){
 
-            if(!strcmp(tmp->sign, "ext")){
+            if(!strcmp(temp->mark, "ext")){
 
-                whichClassify = 1; /* E - external */
+                relation = 1; /* E - external */
                 *ext_Flag = 1;
             } /* end second if */
 
             break;
         } /* end first if */
 
-        tmp = tmp->next;
+        temp = temp->next;
     } /* end while loop */
 
-    addClassify(enc, whichClassify);
-    addNumEncode(enc, tmp->value);
+    editRelation(opCoded, relation);
+    addNumEncode(opCoded, temp->value);
 }
 
-void addClassify(encoder *enc, int whichClassify){
+void editRelation(opCode *opCoded, int relation){
 
     int i = 0;
 
-    switch (whichClassify) {
+    switch (relation) {
 
         case 1:
-            enc->param |= (1 << i);
+            opCoded->value |= (1 << i);
             break;
 
         case 2:
-            enc->param |= (1 << (i+1));
+            opCoded->value |= (1 << (i+1));
             break;
 
         default:
@@ -70,85 +70,85 @@ void addClassify(encoder *enc, int whichClassify){
     } /* end switch */
 }
 
-void convertEncode(encoder *enc, char bitLineStr[14]){
+void changeToOpCode(opCode *opCoded, char opCodeString[14]){
 
     int i, j = 13;
 
     for(i = 0 ; i < 14 ; i++){
 
-        if(enc->param & (1 << i))
-            bitLineStr[j] = '/';
+        if(opCoded->value & (1 << i))
+            opCodeString[j] = '/';
         else
-            bitLineStr[j] = '.';
+            opCodeString[j] = '.';
 
         j--;
     } /* end for loop */
 }
 
-void addOp(int instNum, encoder *enc){
+void addOp(int commandNumber, opCode *opCoded){
 
     int i = 6; /* the opcode bit are 6 - 9 in extras */
 
-    switch (instNum) {
+    switch (commandNumber) {
 
         case 1: /* cmp */
-            enc->param |= (1 << i);
+            opCoded->value |= (1 << i);
             break;
 
         case 2: /* add */
-            enc->param |= (1 << (i+1));
+            opCoded->value |= (1 << (i+1));
             break;
 
         case 3: /* sub */
-            enc->param |= (1 << (i+1)) + (1 << i);
+            opCoded->value |= (1 << (i+1)) + (1 << i);
             break;
 
         case 4: /* not */
-            enc->param |= (1 << (i+2));
+            opCoded->value |= (1 << (i+2));
             break;
 
         case 5: /* clr */
-            enc->param |= (1 << (i+2)) + (1 << i);
+            opCoded->value |= (1 << (i+2)) + (1 << i);
             break;
 
         case 6: /* lea */
-            enc->param |= (1 << (i+2)) + (1 << (i+1));
+            opCoded->value |= (1 << (i+2)) + (1 << (i+1));
             break;
 
         case 7: /* inc */
-            enc->param |= (1 << (i+2)) + (1 << (i+1)) + (1 << i);
+            opCoded->value |= (1 << (i+2)) + (1 << (i+1)) + (1 << i);
             break;
 
         case 8: /* dec */
-            enc->param |= (1 << (i+3));
+            opCoded->value |= (1 << (i+3));
             break;
 
         case 9: /* jmp */
-            enc->param |= (1 << (i+3)) + (1 << i);
+            opCoded->value |= (1 << (i+3)) + (1 << i);
             break;
 
         case 10: /* bne */
-            enc->param |= (1 << (i+3)) + (1 << (i+1));
+            opCoded->value |= (1 << (i+3)) + (1 << (i+1));
             break;
 
         case 11: /* red */
-            enc->param |= (1 << (i+3)) + (1 << (i+1)) + (1 << i);
+            opCoded->value |= (1 << (i+3)) + (1 << (i+1)) + (1 << i);
             break;
 
         case 12: /* prn */
-            enc->param |= (1 << (i+3)) + (1 << (i+2));
+            opCoded->value |= (1 << (i+3)) + (1 << (i+2));
             break;
 
         case 13: /* jsr */
-            enc->param |= (1 << (i+3)) + (1 << (i+2)) + (1 << i);
+            opCoded->value |= (1 << (i+3)) + (1 << (i+2)) + (1 << i);
             break;
 
         case 14: /* rts */
-            enc->param |= (1 << (i+3)) + (1 << (i+2)) + (1 << (i+1));
+            opCoded->value |= (1 << (i+3)) + (1 << (i+2)) + (1 << (i+1));
             break;
 
         case 15: /* stop */
-            enc->param |= (1 << (i+3)) + (1 << (i+2)) + (1 << (i+1)) + (1 << i);
+            opCoded->value |= (1 << (i+3)) + (1 << (i+2)) + (1 << (i+1)) + (1 << i);
             break;
 
         default:
@@ -156,34 +156,34 @@ void addOp(int instNum, encoder *enc){
     } /* end switch */
 }
 
-void prnObjFile(FILE *obFile, essentials *asmParam, encoder *tmpLine){
+void printOpToDotObj(FILE *obFile, data_base *asmValues, opCode *tempLine){
 
-    char bitLineStr[14] = {'\0'};
-    convertEncode(tmpLine, bitLineStr);
-    fprintf(obFile, "\t0%d\t\t%s\n", asmParam->IC, bitLineStr);
+    char opCodeString[14] = {'\0'};
+    changeToOpCode(tempLine, opCodeString);
+    fprintf(obFile, "\t0%d\t\t%s\n", asmValues->IC, opCodeString);
 }
 
-void addAddr(int whichOper, int whichAddr, encoder *enc){
+void addAddress(int whichOp, int address, opCode *opCoded){
 
     int i;
 
-    if(whichOper == 1) /* source operand */
+    if(whichOp == 1) /* source operand */
         i = 4;
     else /* destination operand */
         i = 2;
 
-    switch (whichAddr) {
+    switch (address) {
 
         case 1: /* direct address */
-            enc->param |= (1 << i);
+            opCoded->value |= (1 << i);
             break;
 
         case 2: /* jump address */
-            enc->param |= (1 << (i+1));
+            opCoded->value |= (1 << (i+1));
             break;
 
         case 3: /* direct register address */
-            enc->param |= (1 << i) + (1 << (i+1));
+            opCoded->value |= (1 << i) + (1 << (i+1));
             break;
 
         default:
@@ -192,11 +192,11 @@ void addAddr(int whichOper, int whichAddr, encoder *enc){
     } /* end switch */
 }
 
-void addRegEncode(encoder *enc, int regNum, int whichParam){
+void editOpCodeNumbers(opCode *opCoded, int regNum, int spesificValue){
 
     int i;
 
-    if (whichParam == 1)
+    if (spesificValue == 1)
         i = 8;
     else
         i = 2;
@@ -204,31 +204,31 @@ void addRegEncode(encoder *enc, int regNum, int whichParam){
     switch (regNum) {
 
         case 1:
-            enc->param |= (1 << i);
+            opCoded->value |= (1 << i);
             break;
 
         case 2:
-            enc->param |= (1 << (i+1));
+            opCoded->value |= (1 << (i+1));
             break;
 
         case 3:
-            enc->param |= (1 << (i+1)) + (1 << i);
+            opCoded->value |= (1 << (i+1)) + (1 << i);
             break;
 
         case 4:
-            enc->param |= (1 << (i+2));
+            opCoded->value |= (1 << (i+2));
             break;
 
         case 5:
-            enc->param |= (1 << (i+2)) + (1 << i);
+            opCoded->value |= (1 << (i+2)) + (1 << i);
             break;
 
         case 6:
-            enc->param |= (1 << (i+2)) + (1 << (i+1));
+            opCoded->value |= (1 << (i+2)) + (1 << (i+1));
             break;
 
         case 7:
-            enc->param |= (1 << (i+2)) + (1 << (i+1)) + (1 << i);
+            opCoded->value |= (1 << (i+2)) + (1 << (i+1)) + (1 << i);
             break;
 
         default:
@@ -236,14 +236,14 @@ void addRegEncode(encoder *enc, int regNum, int whichParam){
     } /* end switch */
 }
 
-void addNumEncode(encoder *enc, int num){
+void addNumEncode(opCode *opCoded, int num){
 
     int i;
 
     for(i = 2; i < 14; i++){
 
         if(num & (1<< (i-2)))
-            enc->param |= (1 << i);
+            opCoded->value |= (1 << i);
     } /* end for loop */
 }
 
